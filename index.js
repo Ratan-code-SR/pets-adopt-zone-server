@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
+var jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const port = process.env.PORT || 5000
@@ -36,8 +37,30 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     const usersCollection = client.db("petZoneDB").collection("users");
+    // jwt related api
+    app.post('/jwt', (req, res) => {
+      const user = req.body
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+      res.send({ token })
+    })
 
-    app.get('/users', async (req, res) => {
+    // middleware 
+    const verifyToken = (req, res, next) => {
+      if (!req.headers.authorization) {
+        return res.status(401).send({ message: 'unauthorized access' });
+      }
+      const token = req.headers.authorization.split(' ')[1];
+      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+          return res.status(401).send({ message: 'unauthorized access' })
+        }
+        req.decoded = decoded;
+        next();
+      })
+    }
+
+    app.get('/users', verifyToken, async (req, res) => {
+      // console.log(req.headers);
       const result = await usersCollection.find().toArray();
       res.send(result);
     })
@@ -48,7 +71,7 @@ async function run() {
       res.send(result)
 
     })
-    app.patch("/users/admin/:id",  async (req, res) => {
+    app.patch("/users/admin/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
