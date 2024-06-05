@@ -37,6 +37,8 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     const usersCollection = client.db("petZoneDB").collection("users");
+    const petsCollection = client.db("petZoneDB").collection("pets");
+    const donationCollection = client.db("petZoneDB").collection("donation");
     // jwt related api
     app.post('/jwt', (req, res) => {
       const user = req.body
@@ -92,14 +94,14 @@ async function run() {
     })
 
 
-    app.delete("/users/:id", async (req, res) => {
+    app.delete("/users/:id", verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await usersCollection.deleteOne(query);
       res.send(result)
 
     })
-    app.patch("/users/admin/:id", async (req, res) => {
+    app.patch("/users/admin/:id", verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
@@ -121,6 +123,51 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result)
     })
+
+    // pets related api
+    app.get('/pets', verifyToken, async (req, res) => {
+      const result = await petsCollection.find().toArray();
+      res.send(result);
+    })
+
+    app.post("/pets", async (req, res) => {
+      const user = req.body;
+      const result = await petsCollection.insertOne(user);
+      res.send(result)
+    })
+
+    app.delete('/pets/owner/:id',verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await petsCollection.deleteOne(query);
+      res.send(result)
+    })
+
+    app.patch("/pets/owner/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: 'admin'
+        },
+      };
+      const result = await petsCollection.updateOne(filter, updateDoc);
+      res.send(result)
+
+    })
+    // pets donation related api
+    app.get('/donation', verifyToken, async (req, res) => {
+      const result = await donationCollection.find().toArray();
+      res.send(result);
+    })
+
+    app.post("/donations", async (req, res) => {
+      const user = req.body;
+      const result = await donationCollection.insertOne(user);
+      res.send(result)
+    })
+
+
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
