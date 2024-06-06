@@ -39,6 +39,7 @@ async function run() {
     const usersCollection = client.db("petZoneDB").collection("users");
     const petsCollection = client.db("petZoneDB").collection("pets");
     const donationCollection = client.db("petZoneDB").collection("donation");
+    const reviewCollection = client.db("petZoneDB").collection("reviews");
     // jwt related api
     app.post('/jwt', (req, res) => {
       const user = req.body
@@ -73,7 +74,7 @@ async function run() {
       next();
     }
     // users related api
-    app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
+    app.get('/users', verifyToken, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     })
@@ -92,7 +93,6 @@ async function run() {
       res.send({ admin })
 
     })
-
 
     app.delete("/users/:id", verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
@@ -136,7 +136,7 @@ async function run() {
       res.send(result)
     })
 
-    app.delete('/pets/owner/:id',verifyToken, async (req, res) => {
+    app.delete('/pets/owner/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await petsCollection.deleteOne(query);
@@ -155,8 +155,8 @@ async function run() {
       res.send(result)
 
     })
-    // pets donation related api
-    app.get('/donation', verifyToken, async (req, res) => {
+    // pets donations related api
+    app.get('/donations', verifyToken, async (req, res) => {
       const result = await donationCollection.find().toArray();
       res.send(result);
     })
@@ -167,6 +167,16 @@ async function run() {
       res.send(result)
     })
 
+    // review related api
+    app.post("/reviews", async (req, res) => {
+      const user = req.body;
+      const result = await reviewCollection.insertOne(user);
+      res.send(result)
+    })
+    app.get('/reviews', async (req, res) => {
+      const result = await reviewCollection.find().toArray();
+      res.send(result);
+    })
 
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
