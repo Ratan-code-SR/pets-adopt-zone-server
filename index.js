@@ -94,7 +94,7 @@ async function run() {
 
     })
 
-    app.delete("/users/:id", verifyToken, verifyAdmin, async (req, res) => {
+    app.delete("/users/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await usersCollection.deleteOne(query);
@@ -125,8 +125,22 @@ async function run() {
     })
 
     // pets related api
-    app.get('/pets', verifyToken, async (req, res) => {
+    app.get('/pets',verifyToken,verifyAdmin, async (req, res) => {
       const result = await petsCollection.find().toArray();
+      res.send(result);
+    })
+
+    app.get('/pets/email/:email', verifyToken,async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await petsCollection.find(query).toArray();
+      res.send(result);
+    })
+
+    app.get('/pets/:id', async (req, res) => {
+      const id = req.params.id
+      const query = { _id: new ObjectId(id) }
+      const result = await petsCollection.findOne(query);
       res.send(result);
     })
 
@@ -136,19 +150,26 @@ async function run() {
       res.send(result)
     })
 
-    app.delete('/pets/owner/:id', verifyToken, async (req, res) => {
+    app.delete('/pets/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await petsCollection.deleteOne(query);
       res.send(result)
     })
 
-    app.patch("/pets/owner/:id", verifyToken, async (req, res) => {
+    app.patch("/pets/:id", verifyToken, async (req, res) => {
+      const pet = req.body;
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
-          role: 'admin'
+          name: pet.name,
+          category: pet.category,
+          location: pet.location,
+          description: pet.description,
+          longDescription: pet.longDescription,
+          petImage: pet.petImage,
+          age: pet.age
         },
       };
       const result = await petsCollection.updateOne(filter, updateDoc);
@@ -156,11 +177,25 @@ async function run() {
 
     })
     // pets donations related api
-    app.get('/donations', verifyToken, async (req, res) => {
+    app.get('/donations', verifyToken, verifyAdmin, async (req, res) => {
       const result = await donationCollection.find().toArray();
       res.send(result);
     })
 
+    
+    app.get('/donations/donationsEmail/:email', verifyToken,async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await donationCollection.find(query).toArray();
+      res.send(result);
+    })
+
+    app.get('/donations/:id', async (req, res) => {
+      const id = req.params.id
+      const query = { _id: new ObjectId(id) }
+      const result = await donationCollection.findOne(query);
+      res.send(result);
+    })
     app.post("/donations", async (req, res) => {
       const user = req.body;
       const result = await donationCollection.insertOne(user);
