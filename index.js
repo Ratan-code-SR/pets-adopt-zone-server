@@ -125,7 +125,7 @@ async function run() {
     })
 
     // pets related api
-    app.get('/pets',verifyToken,verifyAdmin, async (req, res) => {
+    app.get('/pets', async (req, res) => {
       const result = await petsCollection.find().toArray();
       res.send(result);
     })
@@ -196,11 +196,36 @@ async function run() {
       const result = await donationCollection.findOne(query);
       res.send(result);
     })
+
+    app.patch("/donations/:id", verifyToken, async (req, res) => {
+      const donations = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          petName: donations.petName,
+          shortDescription: donations.shortDescription,
+          longDescription: donations.longDescription,
+          maximumAmount: donations.maximumAmount,
+          petImage: donations.petImage
+        },
+      };
+      const result = await donationCollection.updateOne(filter, updateDoc);
+      res.send(result)
+
+    })
+    app.delete('/donations/:id', verifyToken, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await donationCollection.deleteOne(query);
+      res.send(result)
+    })
     app.post("/donations", async (req, res) => {
       const user = req.body;
       const result = await donationCollection.insertOne(user);
       res.send(result)
     })
+
 
     // review related api
     app.post("/reviews", async (req, res) => {
