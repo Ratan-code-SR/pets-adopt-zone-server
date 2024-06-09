@@ -4,23 +4,20 @@ const cookieParser = require('cookie-parser')
 var jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 const port = process.env.PORT || 5000
-const app = express()
-// const corsOptions = {
-//   origin: [
-//     'http://localhost:5173/',
-//     'http://localhost:5174/',
+const app = express({
+  origin: [
+    "http://localhost:5173",
+    "https://petadoptzone.netlify.app",
+    "https://petadoptzone.web.app/",
+  ]
+})
 
-
-//   ],
-//   credentials: true,
-//   optionSuccessStatus: 200,
-// }
 
 app.use(cors())
 app.use(express.json())
 app.use(cookieParser())
-
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.zl2zuuz.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -39,6 +36,8 @@ async function run() {
     const usersCollection = client.db("petZoneDB").collection("users");
     const petsCollection = client.db("petZoneDB").collection("pets");
     const donationCollection = client.db("petZoneDB").collection("donation");
+    const adoptRequestCollection = client.db("petZoneDB").collection("adopt");
+    const paymentsCollection = client.db("petZoneDB").collection("payments");
     const reviewCollection = client.db("petZoneDB").collection("reviews");
     // jwt related api
     app.post('/jwt', (req, res) => {
@@ -130,7 +129,7 @@ async function run() {
       res.send(result);
     })
 
-    app.get('/pets/email/:email', verifyToken,async (req, res) => {
+    app.get('/pets/email/:email', verifyToken, async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const result = await petsCollection.find(query).toArray();
@@ -169,7 +168,8 @@ async function run() {
           description: pet.description,
           longDescription: pet.longDescription,
           petImage: pet.petImage,
-          age: pet.age
+          age: pet.age,
+          adopted: pet.adopted
         },
       };
       const result = await petsCollection.updateOne(filter, updateDoc);
@@ -177,13 +177,13 @@ async function run() {
 
     })
     // pets donations related api
-    app.get('/donations', verifyToken, verifyAdmin, async (req, res) => {
+    app.get('/donations', verifyToken, async (req, res) => {
       const result = await donationCollection.find().toArray();
       res.send(result);
     })
 
-    
-    app.get('/donations/donationsEmail/:email', verifyToken,async (req, res) => {
+
+    app.get('/donations/donationsEmail/:email', verifyToken, async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const result = await donationCollection.find(query).toArray();
@@ -226,6 +226,29 @@ async function run() {
       res.send(result)
     })
 
+    // adopted related api
+    app.post("/adopt", async (req, res) => {
+      const user = req.body;
+      const result = await adoptRequestCollection.insertOne(user);
+      res.send(result)
+    })
+    app.post("/adopt/accept", async (req, res) => {
+      const user = req.body;
+      const result = await adoptRequestCollection.insertOne(user);
+      res.send(result)
+    })
+    app.post("/adopt/reject", async (req, res) => {
+      const user = req.body;
+      const result = await adoptRequestCollection.insertOne(user);
+      res.send(result)
+    })
+
+    app.get('/adopt/adoptEmail/:email', async (req, res) => {
+      const email = req.params.ownerEmail;
+      const query = { email: email };
+      const result = await adoptRequestCollection.find(query).toArray();
+      res.send(result);
+    })
 
     // review related api
     app.post("/reviews", async (req, res) => {
@@ -237,7 +260,27 @@ async function run() {
       const result = await reviewCollection.find().toArray();
       res.send(result);
     })
+    // payment related api
+    app.post("/payments", async (req, res) => {
+      const payments = req.body;
+      const paymentsResult = await paymentsCollection.insertOne(payments);
+      res.send(paymentsResult)
+    })
 
+
+    // payment intent related api
+    app.post("/create-payment-intent", async (req, res) => {
+      const { donateAmount } = req.body;
+      const amount = parseInt(donateAmount * 100);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ['card'],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    })
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
