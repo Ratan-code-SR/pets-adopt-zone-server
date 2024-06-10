@@ -128,15 +128,36 @@ async function run() {
       const result = await petsCollection.find().toArray();
       res.send(result);
     })
+ 
+app.get('/searchPets', async (req, res) => {
+  const searchQuery = req.query.q || '';
+  const category = req.query.category || 'All'; 
+  const query = {
+    adopted: 'false',
+    name: { $regex: searchQuery, $options: 'i' }
+  };
+  if (category !== 'All') {
+    query.category = category;
+  }
+  const pets = await petsCollection.find(query).sort({ addedDate: -1 }).toArray();
+  res.send(pets);
+});
 
     app.get('/pets/email/:email', verifyToken, async (req, res) => {
       const email = req.params.email;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+  
       const query = { email: email };
-      const result = await petsCollection.find(query).toArray();
-      res.send(result);
-    })
+      const pets = await petsCollection.find(query).skip(skip).limit(limit).toArray();
+      const totalCount = await petsCollection.countDocuments(query);
+  
+      res.send({ pets, totalCount });
+  });
+  
 
-    app.get('/pets/:id', async (req, res) => {
+    app.get('/pets/:id',async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
       const result = await petsCollection.findOne(query);
@@ -267,6 +288,24 @@ async function run() {
       res.send(paymentsResult)
     })
 
+    app.get('/payments/:id', verifyToken, async (req, res) => {
+      const id = req.params.id
+      const query = { _id: new ObjectId(id) }
+      const result = await paymentsCollection.findOne(query);
+      res.send(result);
+    })
+    app.get('/payments/paymentsEmail/:email', verifyToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await paymentsCollection.find(query).toArray();
+      res.send(result);
+    })
+    app.delete('/payments/:id', verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await paymentsCollection.deleteOne(query);
+      res.send(result)
+    })
 
     // payment intent related api
     app.post("/create-payment-intent", async (req, res) => {
