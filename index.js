@@ -78,11 +78,8 @@ async function run() {
       res.send(result);
     })
 
-    app.get("/users/admin/:email", verifyToken, async (req, res) => {
+    app.get("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
-      if (email !== req.decoded.email) {
-        return res.status(403).send({ message: 'unauthorized access' })
-      }
       const query = { email: email }
       const user = await usersCollection.findOne(query)
       let admin = false;
@@ -128,36 +125,36 @@ async function run() {
       const result = await petsCollection.find().toArray();
       res.send(result);
     })
- 
-app.get('/searchPets', async (req, res) => {
-  const searchQuery = req.query.q || '';
-  const category = req.query.category || 'All'; 
-  const query = {
-    adopted: 'false',
-    name: { $regex: searchQuery, $options: 'i' }
-  };
-  if (category !== 'All') {
-    query.category = category;
-  }
-  const pets = await petsCollection.find(query).sort({ addedDate: -1 }).toArray();
-  res.send(pets);
-});
+
+    app.get('/searchPets', async (req, res) => {
+      const searchQuery = req.query.q || '';
+      const category = req.query.category || 'All';
+      const query = {
+        adopted: 'false',
+        name: { $regex: searchQuery, $options: 'i' }
+      };
+      if (category !== 'All') {
+        query.category = category;
+      }
+      const pets = await petsCollection.find(query).sort({ addedDate: -1 }).toArray();
+      res.send(pets);
+    });
 
     app.get('/pets/email/:email', verifyToken, async (req, res) => {
       const email = req.params.email;
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const skip = (page - 1) * limit;
-  
+
       const query = { email: email };
       const pets = await petsCollection.find(query).skip(skip).limit(limit).toArray();
       const totalCount = await petsCollection.countDocuments(query);
-  
-      res.send({ pets, totalCount });
-  });
-  
 
-    app.get('/pets/:id',async (req, res) => {
+      res.send({ pets, totalCount });
+    });
+
+
+    app.get('/pets/:id', async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
       const result = await petsCollection.findOne(query);
@@ -235,7 +232,7 @@ app.get('/searchPets', async (req, res) => {
       res.send(result)
 
     })
-    app.delete('/donations/:id', verifyToken, verifyAdmin, async (req, res) => {
+    app.delete('/donations/:id', verifyToken,  async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await donationCollection.deleteOne(query);
@@ -246,6 +243,22 @@ app.get('/searchPets', async (req, res) => {
       const result = await donationCollection.insertOne(user);
       res.send(result)
     })
+
+    // In your donations-related API
+    app.patch("/donations/pause/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const { isPaused } = req.body;
+
+      try {
+        const result = await donationCollection.updateOne(filter, { $set: { isPaused } });
+        res.send(result);
+      } catch (error) {
+        console.error("Error pausing donation:", error);
+        res.status(500).send({ error: "Internal Server Error" });
+      }
+    });
+
 
     // adopted related api
     app.post("/adopt", async (req, res) => {
@@ -300,6 +313,12 @@ app.get('/searchPets', async (req, res) => {
       const result = await paymentsCollection.find(query).toArray();
       res.send(result);
     })
+    // app.get('/donations/donators/:id',verifyToken, async (req, res) => {
+    //   const id = req.params.id
+    //   const query = { _id: new ObjectId(id)}
+    //   const result = await paymentsCollection.findOne(query);
+    //   res.send(result);
+    // })
     app.delete('/payments/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
