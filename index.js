@@ -266,15 +266,20 @@ async function run() {
       const result = await adoptRequestCollection.insertOne(user);
       res.send(result)
     })
-    app.post("/adopt/accept", async (req, res) => {
-      const user = req.body;
-      const result = await adoptRequestCollection.insertOne(user);
+
+    app.patch("/adopt/:id", async (req, res) => {
+      const pet = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          adopted: pet.adopted
+        },
+      };
+      // console.log("hello",pet.adopted);
+      const result = await adoptRequestCollection.updateOne(filter, updateDoc);
       res.send(result)
-    })
-    app.post("/adopt/reject", async (req, res) => {
-      const user = req.body;
-      const result = await adoptRequestCollection.insertOne(user);
-      res.send(result)
+
     })
 
     app.get('/adopt/adoptEmail/:email', async (req, res) => {
@@ -283,7 +288,11 @@ async function run() {
       const result = await adoptRequestCollection.find(query).toArray();
       res.send(result);
     })
-
+   
+    app.get('/adopt/request', async (req, res) => {
+      const result = await adoptRequestCollection.find().toArray();
+      res.send(result);
+    })
     // review related api
     app.post("/reviews", async (req, res) => {
       const user = req.body;
