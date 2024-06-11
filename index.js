@@ -279,7 +279,6 @@ async function run() {
       // console.log("hello",pet.adopted);
       const result = await adoptRequestCollection.updateOne(filter, updateDoc);
       res.send(result)
-
     })
 
     app.get('/adopt/adoptEmail/:email', async (req, res) => {
@@ -310,6 +309,11 @@ async function run() {
       res.send(paymentsResult)
     })
 
+    app.get('/payments', async (req, res) => {
+      const result = await paymentsCollection.find().toArray();
+      res.send(result);
+    })
+
     app.get('/payments/:id', verifyToken, async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
@@ -322,12 +326,6 @@ async function run() {
       const result = await paymentsCollection.find(query).toArray();
       res.send(result);
     })
-    // app.get('/donations/donators/:id',verifyToken, async (req, res) => {
-    //   const id = req.params.id
-    //   const query = { _id: new ObjectId(id)}
-    //   const result = await paymentsCollection.findOne(query);
-    //   res.send(result);
-    // })
     app.delete('/payments/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
