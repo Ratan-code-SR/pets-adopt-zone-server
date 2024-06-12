@@ -281,14 +281,8 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/adopt/adoptEmail/:email', async (req, res) => {
-      const email = req.params.ownerEmail;
-      const query = { email: email };
-      const result = await adoptRequestCollection.find(query).toArray();
-      res.send(result);
-    })
-   
-    app.get('/adopt/request', async (req, res) => {
+
+    app.get('/adopt/request', verifyToken, async (req, res) => {
       const result = await adoptRequestCollection.find().toArray();
       res.send(result);
     })
